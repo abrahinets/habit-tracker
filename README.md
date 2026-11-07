@@ -97,3 +97,12 @@ python -m unittest
 - тести як критерій готовності: `python -m unittest` має проходити;
 - `AGENTS.md` — аналог `CLAUDE.md` для цього середовища.
 
+### Друга частина курсу
+
+Далі практикували:
+
+- skills — власний `commit-style` у `.opencode/skills/` задає стиль комітів;
+- MCP — Context7 у `opencode.json` дає агенту актуальну документацію бібліотек;
+- hooks — плагін `guard.js` блокує `rm -rf` і `git push --force`;
+- context management — `/compact` стискає історію, субагенти ізолюють дослідження.
+
