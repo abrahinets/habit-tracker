@@ -23,7 +23,13 @@ def _parse_stored_date(value):
     try:
         return _as_date(value)
     except (TypeError, ValueError):
-        return None
+        pass
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value).date()
+        except ValueError:
+            pass
+    return None
 
 
 def _name_key(name):
@@ -67,6 +73,16 @@ def find_habit(habits, habit_id):
     return None
 
 
+def delete_habit(habits, habit_id):
+    """Видаляє звичку за id і повертає її або None, якщо id не знайдено."""
+    habit = find_habit(habits, habit_id)
+    if habit is None:
+        return None
+
+    habits.remove(habit)
+    return habit
+
+
 def is_done(habit, day=None):
     """Чи відмічено виконання звички за вказаний день (типово — сьогодні).
 
@@ -81,15 +97,24 @@ def mark_done(habit, day=None):
     """Відмічає виконання за день (типово — сьогодні).
 
     Повертає True, якщо відмітку додано, і False, якщо вона вже була.
-    Повторний виклик за той самий день дубліката не створює.
+    Повторний виклик за той самий день дубліката не створює. Збережені дати
+    нормалізуються так само, як у is_done: ISO-рядки, date-об'єкти й
+    datetime-рядки розпізнаються, а некоректні значення лишаються на місці.
     """
-    day = _as_date(day).isoformat()
+    day = _as_date(day)
     dates = habit.setdefault("dates", [])
-    if day in dates:
+    if any(_parse_stored_date(value) == day for value in dates):
         return False
 
-    dates.append(day)
-    dates.sort()
+    dates.append(day.isoformat())
+    positions = [
+        index
+        for index, value in enumerate(dates)
+        if _parse_stored_date(value) is not None
+    ]
+    valid = sorted((dates[index] for index in positions), key=_parse_stored_date)
+    for index, value in zip(positions, valid):
+        dates[index] = value
     return True
 
 

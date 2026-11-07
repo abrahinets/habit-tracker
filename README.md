@@ -18,6 +18,18 @@ python main.py add "Читання"
 python main.py done 1
 ```
 
+Видалити звичку (запитає підтвердження, типова відповідь — `N`):
+
+```console
+python main.py delete 2
+```
+
+Пропустити підтвердження можна прапорцем `--yes`:
+
+```console
+python main.py delete 2 --yes
+```
+
 Показати звички та серії:
 
 ```console

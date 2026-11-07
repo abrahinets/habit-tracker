@@ -64,6 +64,27 @@ class MarkDoneTests(unittest.TestCase):
         self.assertFalse(habits.mark_done(habit, TODAY))
         self.assertEqual(habit["dates"], ["2026-11-07"])
 
+    def test_datetime_string_does_not_create_duplicate(self):
+        habit = {"id": 2, "name": "Спорт", "dates": ["2026-11-07T00:00:00"]}
+        self.assertFalse(habits.mark_done(habit, TODAY))
+        self.assertEqual(habit["dates"], ["2026-11-07T00:00:00"])
+
+
+class DeleteHabitTests(unittest.TestCase):
+    def test_delete_existing_id(self):
+        habit_list = [
+            {"id": 1, "name": "Читання", "dates": []},
+            {"id": 2, "name": "Спорт", "dates": []},
+        ]
+        removed = habits.delete_habit(habit_list, 2)
+        self.assertEqual(removed["name"], "Спорт")
+        self.assertEqual([habit["id"] for habit in habit_list], [1])
+
+    def test_delete_missing_id(self):
+        habit_list = [{"id": 1, "name": "Читання", "dates": []}]
+        self.assertIsNone(habits.delete_habit(habit_list, 99))
+        self.assertEqual(len(habit_list), 1)
+
 
 class IsDoneTests(unittest.TestCase):
     def test_iso_string(self):

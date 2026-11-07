@@ -1,4 +1,4 @@
-"""Консольний трекер звичок: add, done, list."""
+"""Консольний трекер звичок: add, done, list, delete."""
 
 import argparse
 import sys
@@ -22,6 +22,14 @@ def build_parser():
     done_parser.add_argument("id", type=int, help="ID звички")
 
     subparsers.add_parser("list", help="показати звички та серії")
+
+    delete_parser = subparsers.add_parser("delete", help="видалити звичку")
+    delete_parser.add_argument("id", type=int, help="ID звички")
+    delete_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="видалити без підтвердження",
+    )
 
     return parser
 
@@ -63,6 +71,28 @@ def cmd_list(path):
         print(f"{habit['id']}. {mark} {habit['name']} — серія: {streak} дн.")
 
 
+def cmd_delete(path, habit_id, assume_yes=False):
+    """Видаляє звичку, питаючи підтвердження. Повертає код виходу."""
+    data = storage.load(path)
+    habit = habits.delete_habit(data["habits"], habit_id)
+    if habit is None:
+        print(f"Звичку з id={habit_id} не знайдено.", file=sys.stderr)
+        return 1
+
+    if not assume_yes:
+        try:
+            answer = input(f"Видалити «{habit['name']}»? [y/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().casefold() not in ("y", "yes"):
+            print("Скасовано.")
+            return 0
+
+    storage.save(path, data)
+    print(f"Видалено: {habit['name']}")
+    return 0
+
+
 def main(argv=None):
     """Точка входу CLI. Повертає код виходу."""
     args = build_parser().parse_args(argv)
@@ -74,6 +104,8 @@ def main(argv=None):
             return cmd_done(storage.DEFAULT_PATH, args.id)
         elif args.command == "list":
             cmd_list(storage.DEFAULT_PATH)
+        elif args.command == "delete":
+            return cmd_delete(storage.DEFAULT_PATH, args.id, args.yes)
     except (OSError, ValueError) as exc:
         print(f"Помилка: {exc}", file=sys.stderr)
         return 1

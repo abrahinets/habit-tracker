@@ -1,9 +1,9 @@
 # AGENTS.md
 
-Консольний трекер звичок на Python: add/done/list, дані в `habits.json`. Тільки stdlib.
+Консольний трекер звичок на Python: add/done/list/delete, дані в `habits.json`. Тільки stdlib.
 
 ## Запуск
-`python main.py add "Назва"` · `python main.py done <id>` · `python main.py list`
+`python main.py add "Назва"` · `python main.py done <id>` · `python main.py list` · `python main.py delete <id> [--yes]`
 
 ## Тести
 `python -m unittest`
