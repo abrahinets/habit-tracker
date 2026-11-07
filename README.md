@@ -1,5 +1,7 @@
 # Habit Tracker
 
+[![Tests](https://github.com/abrahinets/habit-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/abrahinets/habit-tracker/actions/workflows/tests.yml)
+
 Консольний трекер звичок на Python: додавання звичок, щоденні відмітки, підрахунок серій, дані зберігаються в SQLite. Покритий 28 тестами, частину коду писав разом з AI-агентом, а результат перевіряв сам.
 
 ## Запуск
