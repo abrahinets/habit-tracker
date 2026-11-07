@@ -1,2 +1,6 @@
 __pycache__/
+habits.db
+habits.db-journal
+habits.db-wal
+habits.db-shm
 habits.json

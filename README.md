@@ -1,8 +1,8 @@
 # Habit Tracker
 
 Консольний трекер звичок на Python без зовнішніх залежностей. Звички та дати
-виконання зберігаються у `habits.json`, для кожної звички показується серія
-днів поспіль.
+виконання зберігаються у базі `habits.db` (SQLite), для кожної звички
+показується серія днів поспіль.
 
 ## Запуск
 
@@ -52,32 +52,37 @@ python main.py list
 python -m unittest
 ```
 
-Тести не торкаються реального `habits.json`: файл для перевірок створюється
-у тимчасовій теці.
+Тести працюють з тимчасовою базою SQLite і не торкаються реального
+`habits.db`.
 
-## Формат даних
+## База даних
 
-`habits.json` створюється автоматично при першому `add` і має вигляд:
+`habits.db` (SQLite) створюється автоматично при першому запуску:
 
-```json
-{
-  "habits": [
-    {
-      "id": 1,
-      "name": "Читання",
-      "created": "2026-11-07",
-      "dates": ["2026-11-06", "2026-11-07"]
-    }
-  ]
-}
+```sql
+CREATE TABLE habits (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (date('now'))
+);
+
+CREATE TABLE checkins (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+    date     TEXT NOT NULL,
+    UNIQUE (habit_id, date)
+);
 ```
 
-- `id` — ціле число, унікальне в межах файлу;
-- `name` — назва звички;
-- `created` — дата створення (`YYYY-MM-DD`);
-- `dates` — відмічені дні виконання (`YYYY-MM-DD`).
+- `habits` — звички: назва й дата створення (`YYYY-MM-DD`);
+- `checkins` — відмітки виконання; пара `habit_id` + `date` унікальна, тому
+  один день не можна відмітити двічі;
+- `ON DELETE CASCADE` прибирає відмітки разом зі звичкою.
 
-`habits.json` доданий у `.gitignore`, бо це локальні дані.
+Якщо поруч лежить старий `habits.json`, а база порожня, дані один раз
+імпортуються автоматично.
+
+`habits.db` доданий у `.gitignore`, бо це локальні дані.
 
 ## Правило серії
 
