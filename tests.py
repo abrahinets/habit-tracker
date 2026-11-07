@@ -231,6 +231,73 @@ class MigrationTests(unittest.TestCase):
         self.addCleanup(second.close)
         self.assertEqual(len(db.list_habits(second)), 1)
 
+    def test_does_not_reimport_after_all_habits_deleted(self):
+        self.write_legacy(
+            {"habits": [{"id": 1, "name": "Читання", "created": "2026-11-01", "dates": []}]}
+        )
+
+        first = db.connect(self.db_path)
+        db.delete_habit(first, 1)
+        first.close()
+
+        second = db.connect(self.db_path)
+        self.addCleanup(second.close)
+        self.assertEqual(db.list_habits(second), [])
+        self.assertTrue((self.directory / "habits.json.migrated").exists())
+        self.assertFalse((self.directory / "habits.json").exists())
+
+    def test_failed_migration_releases_db_file(self):
+        legacy = self.directory / "habits.json"
+        legacy.write_text("{not json", encoding="utf-8")
+
+        with self.assertRaises(ValueError):
+            db.connect(self.db_path)
+
+        check = sqlite3.connect(self.db_path)
+        try:
+            self.assertEqual(check.execute("SELECT COUNT(*) FROM habits").fetchone()[0], 0)
+        finally:
+            check.close()
+
+        self.assertEqual(legacy.read_text(encoding="utf-8"), "{not json")
+        self.assertFalse((self.directory / "habits.json.migrated").exists())
+        self.db_path.unlink()
+        self.assertFalse(self.db_path.exists())
+
+    def test_skips_duplicate_names(self):
+        self.write_legacy(
+            {
+                "habits": [
+                    {"id": 1, "name": "Read book", "created": "2026-11-01", "dates": []},
+                    {"id": 2, "name": "  read   book  ", "created": "2026-11-02", "dates": []},
+                ]
+            }
+        )
+
+        conn = db.connect(self.db_path)
+        self.addCleanup(conn.close)
+
+        self.assertEqual([habit["name"] for habit in db.list_habits(conn)], ["Read book"])
+
+    def test_skips_invalid_names(self):
+        self.write_legacy(
+            {
+                "habits": [
+                    {"id": 1, "name": None, "dates": []},
+                    {"id": 2, "name": "", "dates": []},
+                    {"id": 3, "name": "   ", "dates": []},
+                    {"id": 4, "name": 123, "dates": []},
+                    {"id": 5, "dates": []},
+                    {"id": 6, "name": "Valid", "created": "2026-11-01", "dates": []},
+                ]
+            }
+        )
+
+        conn = db.connect(self.db_path)
+        self.addCleanup(conn.close)
+
+        self.assertEqual([habit["name"] for habit in db.list_habits(conn)], ["Valid"])
+
 
 if __name__ == "__main__":
     unittest.main()

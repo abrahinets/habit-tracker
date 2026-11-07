@@ -62,24 +62,33 @@ def create_tables(conn):
     conn.commit()
 
 
-def connect(path=DEFAULT_PATH, *, migrate=True):
+def connect(path=DEFAULT_PATH):
     """Відкриває базу, вмикає зовнішні ключі й створює схему."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    create_tables(conn)
-
-    if migrate:
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        create_tables(conn)
         migrate_json(conn, path.with_name("habits.json"))
+    except BaseException:
+        conn.close()
+        raise
     return conn
 
 
 def migrate_json(conn, path):
-    """Імпортує старий habits.json, якщо база порожня. Повертає кількість звичок."""
+    """Імпортує старий habits.json, якщо база порожня. Повертає кількість звичок.
+
+    Після успішного імпорту файл перейменовується у habits.json.migrated,
+    тому вдруге він уже не читається.
+    """
     path = Path(path)
+    marker = Path(f"{path}.migrated")
+    if marker.exists():
+        return 0
     if not path.exists():
         return 0
     if conn.execute("SELECT COUNT(*) FROM habits").fetchone()[0]:
@@ -94,13 +103,21 @@ def migrate_json(conn, path):
         raise ValueError(f"Файл {path} має неочікувану структуру")
 
     imported = 0
+    seen_names = set()
     for habit in data.get("habits", []):
         if not isinstance(habit, dict):
             continue
 
-        name = str(habit.get("name", "")).strip()
+        raw_name = habit.get("name")
+        if not isinstance(raw_name, str):
+            continue
+        name = raw_name.strip()
         if not name:
             continue
+        key = name_key(name)
+        if key in seen_names:
+            continue
+        seen_names.add(key)
 
         created = parse_stored_date(habit.get("created")) or date.today()
         habit_id = habit.get("id")
@@ -126,6 +143,7 @@ def migrate_json(conn, path):
         imported += 1
 
     conn.commit()
+    path.replace(marker)
     return imported
 
 
